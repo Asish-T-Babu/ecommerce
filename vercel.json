@@ -2,12 +2,16 @@
     "builds": [{
         "src": "ecommerce/wsgi.py",
         "use": "@vercel/python",
-        "config": { "maxLambdaSize": "20mb", "runtime": "python3.10" }
+        "config": { "maxLambdaSize": "15mb", "runtime": "python3.12", "buildCommand": "bash_setup.sh" }
     }],
     "routes": [
         {
             "src": "/(.*)",
             "dest": "ecommerce/wsgi.py"
+        },
+        {
+            "src": "static/(.*)",
+            "dest": "/static/$/"
         }
     ]
 }
