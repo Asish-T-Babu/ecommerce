@@ -1,0 +1,4 @@
+db.sqlite3
+ecommerce_app/__pycache__
+ecommerce_app/migrations
+
