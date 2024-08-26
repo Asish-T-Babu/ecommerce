@@ -68,3 +68,50 @@ def login(request):
 
         else:
             return Response({"status": "validation_error", "data": {"email": ["Please Register and Login."] }}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def user_list(request):
+    """
+    Get All Users
+    """
+    users = User.objects.filter(status=STATUS_CHOICES[1][0])
+    user_serializer = UserSerializer(users, many = True)
+    return Response({'status': 'success', 'data': user_serializer.data}, status= status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_user(request, user_id):
+    """
+    Get Single User
+    """
+    user = User.objects.filter(id = user_id).first()
+    if not user:
+        return Response({'status': 'error', 'data': "User not found"}, status= status.HTTP_400_BAD_REQUEST)
+    user_serializer = UserSerializer(user)
+    return Response({'status': 'success', 'data': user_serializer.data}, status= status.HTTP_200_OK)
+
+@api_view(['PATCH'])
+def update_user(request, user_id):
+    """
+    Update User
+    """
+    user = User.objects.filter(id = user_id).first()
+    if not user:
+        return Response({'status': 'error', 'data': 'User not found'}, status= status.HTTP_400_BAD_REQUEST)
+    user_serializer = UserSerializer(user, data= request.data, partial= True)
+    if user_serializer.is_valid():
+        user_serializer.save()
+        return Response({'status': 'success', 'data': 'User updated successfully'}, status= status.HTTP_200_OK)
+    else:
+        return Response({'status': 'validation_error', 'data': user_serializer.errors}, status= status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['DELETE'])
+def delete_user(request, user_id):
+    """
+    Delete User
+    """
+    user = User.objects.filter(id = user_id).first()
+    if not user:
+        return Response({'status': 'error', 'data': 'User not found'}, status= status.HTTP_400_BAD_REQUEST)
+    user.status = STATUS_CHOICES[2][0]
+    user.save()
+    return Response({'status': 'User deleted successfully'}, status= status.HTTP_200_OK)

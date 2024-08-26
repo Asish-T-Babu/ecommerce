@@ -3,3 +3,7 @@ ecommerce_app/__pycache__
 ecommerce_app/migrations
 ecommerce/__pycache__
 .env
+ecommerce_app/views/__pycache__
+ecommerce_app/serializers/__pycache__
+ecommerce_app/models/__pycache__
+media
