@@ -2,12 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 import uuid
 
-STATUS_CHOICES = (
-    (0, 'inactive'),
-    (1, 'active'),
-    (2, 'delete'),
-    (3, 'draft'),
-)
+from ecommerce_app.utils import STATUS_CHOICES
 
 USER_CURRENCY = (
     ('rupee', 'rupee'),
