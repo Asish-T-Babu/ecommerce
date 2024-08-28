@@ -1,6 +1,6 @@
 STATUS_CHOICES = (
-    (0, 'inactive'),
-    (1, 'active'),
-    (2, 'delete'),
-    (3, 'draft'),
+    (0, 'InActive'),
+    (1, 'Active'),
+    (2, 'Delete'),
+    (3, 'Draft'),
 )
