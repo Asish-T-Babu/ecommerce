@@ -1,8 +1,12 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
-from ecommerce_app.models.admin import Brand, Category
-from ecommerce_app.serializers.admin import BrandSerializer, CategorySerializer
+from django.shortcuts import get_object_or_404
+
+from ecommerce_app.models.admin import Brand, Category, Product
+from ecommerce_app.serializers.admin import BrandSerializer, CategorySerializer, ProductSerializer
 from ecommerce_app.utils import STATUS_CHOICES
 
 # Brand API's
@@ -152,4 +156,52 @@ class CategoryRetrieveUpdateDestroyView(generics.GenericAPIView):
             return Response({'status': 'error', 'data': 'Category not found'}, status=status.HTTP_400_BAD_REQUEST)
         instance.status = STATUS_CHOICES[2][0]
         instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class ProductListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        products = Product.objects.filter(status = STATUS_CHOICES[1][0])
+        serializer = ProductSerializer(products, many=True)
+        return Response({'status':'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = ProductSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({'status': 'validation_error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class ProductDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        return get_object_or_404(Product, pk=pk)
+
+    def get(self, request, pk):
+        product = self.get_object(pk)
+        serializer = ProductSerializer(product)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        product = self.get_object(pk)
+        serializer = ProductSerializer(product, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk):
+        product = self.get_object(pk)
+        serializer = ProductSerializer(product, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        product = self.get_object(pk)
+        product.status = STATUS_CHOICES[2][0]
+        product.save()
         return Response(status=status.HTTP_204_NO_CONTENT)

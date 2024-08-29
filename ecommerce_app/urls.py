@@ -19,7 +19,10 @@ urlpatterns = [
     path('brands/<uuid:pk>/', BrandRetrieveUpdateDestroyView.as_view(), name='brand_detail'),
     
     # Category API's
-    path('categories/', CategoryListCreateView.as_view(), name='category-list-create'),
-    path('categories/<uuid:pk>/', CategoryRetrieveUpdateDestroyView.as_view(), name='category-detail'),
+    path('categories/', CategoryListCreateView.as_view(), name='category_list_create'),
+    path('categories/<uuid:pk>/', CategoryRetrieveUpdateDestroyView.as_view(), name='category_detail'),
 
+    # Product API's
+    path('products/', ProductListCreateView.as_view(), name='product_list_create'),
+    path('products/<uuid:pk>/', ProductDetailView.as_view(), name='product_detail'),
 ]
