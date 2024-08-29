@@ -159,7 +159,7 @@ class CategoryRetrieveUpdateDestroyView(generics.GenericAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class ProductListCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         products = Product.objects.filter(status = STATUS_CHOICES[1][0])
@@ -174,7 +174,7 @@ class ProductListCreateView(APIView):
         return Response({'status': 'validation_error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get_object(self, pk):
         return get_object_or_404(Product, pk=pk)

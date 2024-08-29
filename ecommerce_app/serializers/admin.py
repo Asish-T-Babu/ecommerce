@@ -11,6 +11,7 @@ class BrandSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
     status_text = serializers.SerializerMethodField()
+    product = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
@@ -22,8 +23,11 @@ class CategorySerializer(serializers.ModelSerializer):
     def get_status_text(self, obj):
         return STATUS_CHOICES[obj.status][1]
         
+    def get_product(self, obj):
+        return ProductSerializer(obj.product_category.filter(status = STATUS_CHOICES[1][0]), many=True, context=self.context).data
     
 class ProductSerializer(serializers.ModelSerializer):
+
     brand = BrandSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
 

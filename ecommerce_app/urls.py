@@ -25,4 +25,5 @@ urlpatterns = [
     # Product API's
     path('products/', ProductListCreateView.as_view(), name='product_list_create'),
     path('products/<uuid:pk>/', ProductDetailView.as_view(), name='product_detail'),
+
 ]
