@@ -40,7 +40,7 @@ class User(AbstractBaseUser):
     phone_number = models.CharField(max_length=20, blank=True, null=True, unique=True)
     first_name = models.CharField(max_length=256, blank=True, null=True)
     last_name = models.CharField(max_length=256, blank=True, null=True)
-    user_currency = models.CharField(max_length=10, blank= True, null= True, choices= USER_CURRENCY)
+    user_currency = models.CharField(max_length=10, blank= True, null= True, choices=USER_CURRENCY)
     profile_image = models.ImageField(blank=True, null=True, upload_to='media/profile_image/')
 
     is_superadmin = models.BooleanField(default=False)
@@ -75,3 +75,6 @@ class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name= 'cart_user')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null= True, related_name='cart_product')
     quantity = models.PositiveIntegerField()
+    status = models.PositiveBigIntegerField(default=STATUS_CHOICES[1][0], choices=STATUS_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

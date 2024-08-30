@@ -27,8 +27,7 @@ class CategorySerializer(serializers.ModelSerializer):
         return ProductSerializer(obj.product_category.filter(status = STATUS_CHOICES[1][0]), many=True, context=self.context).data
     
 class ProductSerializer(serializers.ModelSerializer):
-
-    brand = BrandSerializer(read_only=True)
+    brand = serializers.PrimaryKeyRelatedField(queryset=Brand.objects.filter(status = STATUS_CHOICES[1][0]))
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
 
     class Meta:
