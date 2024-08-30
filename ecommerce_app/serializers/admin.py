@@ -15,7 +15,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description', 'parent', 'children', 'status', 'status_text', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'parent', 'children', 'product', 'status', 'status_text', 'created_at', 'updated_at']
 
     def get_children(self, obj):
         return CategorySerializer(obj.children.filter(status = STATUS_CHOICES[1][0]), many=True, context=self.context).data
@@ -29,7 +29,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
 
     brand = BrandSerializer(read_only=True)
-    category = CategorySerializer(read_only=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
 
     class Meta:
         model = Product

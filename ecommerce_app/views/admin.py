@@ -177,31 +177,39 @@ class ProductDetailView(APIView):
     # permission_classes = [IsAuthenticated]
 
     def get_object(self, pk):
-        return get_object_or_404(Product, pk=pk)
+        return Product.objects.filter(id = pk).first()
 
     def get(self, request, pk):
         product = self.get_object(pk)
+        if not product:
+            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
         serializer = ProductSerializer(product)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
         product = self.get_object(pk)
+        if not product:
+            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
         serializer = ProductSerializer(product, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+        return Response({'status': 'error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
         product = self.get_object(pk)
+        if not product:
+            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
         serializer = ProductSerializer(product, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+        return Response({'status': 'error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
         product = self.get_object(pk)
+        if not product:
+            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
         product.status = STATUS_CHOICES[2][0]
         product.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'status': 'success', 'data': 'Product deleted successfully'}, status=status.HTTP_200_OK)

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 import uuid
 
+from ecommerce_app.models.admin import Product
 from ecommerce_app.utils import STATUS_CHOICES
 
 USER_CURRENCY = (
@@ -65,11 +66,12 @@ class User(AbstractBaseUser):
     def get_full_name(self):
         return f'{self.first_name} {self.last_name if self.last_name else ""}'.strip()
 
-    @property
-    def user_image(self):
-        if self.profile_image:
-            return self.profile_image.url.replace('/media/media/', '/media/')
-        return None
 
     def __str__(self):
         return self.email
+
+class Cart(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name= 'cart_user')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null= True, related_name='cart_product')
+    quantity = models.PositiveIntegerField()
