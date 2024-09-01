@@ -1,7 +1,12 @@
-from django.urls import path
+from django.urls import path, include
+
+from rest_framework.routers import DefaultRouter
 
 from ecommerce_app.views.user import *
 from ecommerce_app.views.admin import *
+
+router = DefaultRouter()
+router.register(r'carts', CartViewSet, basename='cart')
 
 urlpatterns = [
     # user views
@@ -26,4 +31,6 @@ urlpatterns = [
     path('products/', ProductListCreateView.as_view(), name='product_list_create'),
     path('products/<uuid:pk>/', ProductDetailView.as_view(), name='product_detail'),
 
+    # Cart API
+    path('', include(router.urls)),
 ]
