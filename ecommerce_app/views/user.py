@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, viewsets, permissions, mixins
+from rest_framework.exceptions import ValidationError
 
 from django.contrib.auth import authenticate
 from django.db.models import Q
@@ -8,9 +9,7 @@ from django.db.models import Q
 from ecommerce_app.serializers.user import UserSerializer, CartSerializer
 from ecommerce_app.models.user import User, Cart
 from ecommerce_app.utils import STATUS_CHOICES
-from ecommerce_app.helper import create_jwt_token_for_user
-from ecommerce_app.mixins.user import CartMixin
-
+from ecommerce_app.helper import create_jwt_token_for_user, CartMixin
 # Create your views here.
 
 # User views
@@ -122,49 +121,44 @@ def delete_user(request, user_id):
 
 # Cart Views
 class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = Cart.objects.filter(status=STATUS_CHOICES[1][0])  # Filter out deleted items
+    queryset = Cart.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = CartSerializer
 
     def perform_create(self, serializer):
-        product = serializer.validated_data['product']
-        quantity = serializer.validated_data['quantity']
-        return self.add_to_cart(self.request, product, quantity)
+        """
+        Add Product To Cart -> Here We are over ridding CreateModelMixin The Values After Validating The Data, But We Need To Throw Custom Validation Error
+        """
+        if not serializer.is_valid():
+            raise ValidationError({'error': 'Custom error during creation.', 'details': serializer.errors})
+        
+        product = serializer.validated_data.get('product')
+        quantity = serializer.validated_data.get('quantity')
+        
+        self.add_to_cart(self.request, product.id, quantity)
+
+        return Response({'message': 'Product added to cart successfully'}, status=status.HTTP_201_CREATED)
 
     def perform_update(self, serializer):
-        product = serializer.validated_data['product']
-        quantity = serializer.validated_data['quantity']
+        if not serializer.is_valid():
+            raise ValidationError({'error': 'Custom error during update.', 'details': serializer.errors})
+        
+        product = serializer.validated_data.get('product')
+        quantity = serializer.validated_data.get('quantity')
+        
+        self.add_to_cart(self.request, product.id, quantity)
 
-        if self.request.user.is_authenticated:
-            self.add_to_cart(self.request, product, quantity)
-        else:
-            cart = self.get_cart(self.request)
-            product_id = str(product.id)
-
-            if product_id in cart:
-                cart[product_id] = quantity  # Update the quantity
-                self.save_cart(self.request, cart)
-                return Response({'message': 'Product updated in session cart'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'message': 'Product not found in session cart'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'message': 'Product updated in cart successfully'}, status=status.HTTP_200_OK)
 
     def perform_destroy(self, instance):
-        if self.request.user.is_authenticated:
-            instance.soft_delete()  # Perform soft delete instead of hard delete
-            return Response({'message': 'Product removed from cart'}, status=status.HTTP_204_NO_CONTENT)
-        else:
-            cart = self.get_cart(self.request)
-            product_id = str(instance.product.id)
+        if instance.product.is_protected:
+            raise ValidationError({'error': f'Product {instance.product.name} cannot be removed from the cart.'})
 
-            if product_id in cart:
-                del cart[product_id]  # Remove the product
-                self.save_cart(self.request, cart)
-                return Response({'message': 'Product removed from session cart'}, status=status.HTTP_204_NO_CONTENT)
-            else:
-                return Response({'message': 'Product not found in session cart'}, status=status.HTTP_404_NOT_FOUND)
+        instance.status = STATUS_CHOICES[2][0]
+        instance.save()
+
+        return Response({'message': 'Productremoved from cart successfully'}, status=status.HTTP_200_OK)
 
     def list(self, request, *args, **kwargs):
-        if self.request.user.is_authenticated:
-            return super().list(request, *args, **kwargs)
-        else:
-            cart = self.get_cart(self.request)
-            return Response({'cart': cart, 'message': 'Session cart items retrieved'}, status=status.HTTP_200_OK)
+        cart = self.get_cart(request)
+        serializer = CartSerializer(cart, many=True)
+        return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)

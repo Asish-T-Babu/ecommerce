@@ -76,5 +76,6 @@ class Cart(models.Model):
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null= True, related_name='cart_product')
     quantity = models.PositiveIntegerField()
     status = models.PositiveBigIntegerField(default=STATUS_CHOICES[1][0], choices=STATUS_CHOICES)
+    session_id = models.CharField(max_length=256, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
