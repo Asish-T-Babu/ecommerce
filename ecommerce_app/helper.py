@@ -42,10 +42,10 @@ class CartMixin:
             if cart_id:
                 cart_item = Cart.objects.filter(session_id = cart_id, product__id = product_id, status = STATUS_CHOICES[1][0]).first()
                 if cart_item:
-                    cart_item.quantity += 1
+                    cart_item.quantity += quantity
                     cart_item.save()
                 else:
-                    Cart.objects.create(session_id = cart_id, product_id = product_id, quantity = 1)
+                    Cart.objects.create(session_id = cart_id, product_id = product_id, quantity = quantity)
             else:
                 cart_id = uuid.uuid4()
                 request.session['cart_id'] = str(cart_id)

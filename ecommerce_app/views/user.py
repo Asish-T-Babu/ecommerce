@@ -152,7 +152,10 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
 
     def destroy(self, request, *args, **kwargs):
 
-        instance = self.get_object()
+        try:
+            instance = self.get_object()
+        except:
+            return Response({'status': 'error', 'data': 'Cart Item not found'}, status=status.HTTP_400_BAD_REQUEST)
         self.perform_destroy(instance)
         return Response({'message': 'Product removed from cart successfully'}, status=status.HTTP_200_OK)
 
@@ -170,10 +173,6 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
         super().perform_update(serializer)
 
     def perform_destroy(self, instance):
-        # Custom business logic errors can still be raised here
-        if instance.product.is_protected:
-            raise ValidationError({'error': f'Product {instance.product.name} cannot be removed from the cart.'})
-
         instance.status = STATUS_CHOICES[2][0]
         instance.save()
         super().perform_destroy(instance)
