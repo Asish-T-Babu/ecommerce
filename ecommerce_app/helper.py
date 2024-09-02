@@ -52,7 +52,7 @@ class CartMixin:
                 Cart.objects.create(session_id = cart_id, product_id = product_id, quantity = 1)
             
         else:
-            cart_item = request.user.cart_user.filter(product_id=product_id)
+            cart_item = request.user.cart_user.filter(product_id=product_id).first()
             if not cart_item:
                 cart_item = Cart()
                 cart_item.user = request.user

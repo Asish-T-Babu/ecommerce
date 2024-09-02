@@ -124,39 +124,59 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
     queryset = Cart.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = CartSerializer
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
         """
-        Add Product To Cart -> Here We are over ridding CreateModelMixin The Values After Validating The Data, But We Need To Throw Custom Validation Error
+        Adding Item To Cart -> Here we are using create method and perform create to do this task, we can only use create function but for learning purpose we are using both, perform_create will handle the logic after raising the serializer validationn error, for throwing custom serializer validation error create function is used, after validating  the serilizer the rest operations can be performed here itself
         """
+        serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
-            raise ValidationError({'error': 'Custom error during creation.', 'details': serializer.errors})
-        
+            # Custom error handling
+            return Response({'status': 'validation_error', 'data': serializer.errors}, status= status.HTTP_400_BAD_REQUEST)
+
+        # If valid, proceed to perform_create
+        self.perform_create(serializer)
+        return Response({'status': 'success', 'data': "Item added in cart"}, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update the product in cart -> the above comment is valid here
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if not serializer.is_valid():
+            return Response({'status': 'validation_error', 'data': serializer.errors}, status= status.HTTP_400_BAD_REQUEST)
+
+        self.perform_update(serializer)
+        return Response({'message': 'Product updated in cart successfully', 'data': serializer.data}, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({'message': 'Product removed from cart successfully'}, status=status.HTTP_200_OK)
+
+    def perform_create(self, serializer):
         product = serializer.validated_data.get('product')
         quantity = serializer.validated_data.get('quantity')
-        
-        self.add_to_cart(self.request, product.id, quantity)
 
-        return Response({'message': 'Product added to cart successfully'}, status=status.HTTP_201_CREATED)
+        self.add_to_cart(self.request, product.id, quantity)
 
     def perform_update(self, serializer):
-        if not serializer.is_valid():
-            raise ValidationError({'error': 'Custom error during update.', 'details': serializer.errors})
-        
         product = serializer.validated_data.get('product')
         quantity = serializer.validated_data.get('quantity')
-        
-        self.add_to_cart(self.request, product.id, quantity)
 
-        return Response({'message': 'Product updated in cart successfully'}, status=status.HTTP_200_OK)
+        self.add_to_cart(self.request, product.id, quantity)
+        super().perform_update(serializer)
 
     def perform_destroy(self, instance):
+        # Custom business logic errors can still be raised here
         if instance.product.is_protected:
             raise ValidationError({'error': f'Product {instance.product.name} cannot be removed from the cart.'})
 
         instance.status = STATUS_CHOICES[2][0]
         instance.save()
-
-        return Response({'message': 'Productremoved from cart successfully'}, status=status.HTTP_200_OK)
+        super().perform_destroy(instance)
 
     def list(self, request, *args, **kwargs):
         cart = self.get_cart(request)
