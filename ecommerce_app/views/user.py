@@ -220,12 +220,13 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
 
         self.add_to_cart(self.request, product.id, quantity)
 
-    def perform_update(self, serializer):
-        product = serializer.validated_data.get('product')
-        quantity = serializer.validated_data.get('quantity')
+    # The Below Function Is Not Needed Because, I Am Only Updating The Quantity Of The Instance
+    # def perform_update(self, serializer):
+    #     product = serializer.validated_data.get('product')
+    #     quantity = serializer.validated_data.get('quantity')
 
-        self.add_to_cart(self.request, product.id, quantity)
-        super().perform_update(serializer)
+    #     self.add_to_cart(self.request, product.id, quantity)
+    #     super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         instance.status = STATUS_CHOICES[2][0]

@@ -3,8 +3,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from django.shortcuts import get_object_or_404
-
 from ecommerce_app.models.admin import Brand, Category, Product
 from ecommerce_app.serializers.admin import BrandSerializer, CategorySerializer, ProductSerializer
 from ecommerce_app.utils import STATUS_CHOICES
@@ -20,8 +18,10 @@ class BrandListCreateView(generics.ListCreateAPIView):
         Get All Brands
         """
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        paginator = StandardResultsSetPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request) 
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        return paginator.get_paginated_response({'status': 'success', 'data': serializer.data})
     
     def create(self, request, *args, **kwargs):
         """
@@ -94,8 +94,11 @@ class CategoryListCreateView(generics.GenericAPIView):
         Get All Categories
         """
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response({'status': 'success', 'data': serializer.data}, status= status.HTTP_200_OK)
+
+        paginator = StandardResultsSetPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request) 
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        return paginator.get_paginated_response({'status': 'success', 'data': serializer.data})
 
     def post(self, request, *args, **kwargs):
         """
