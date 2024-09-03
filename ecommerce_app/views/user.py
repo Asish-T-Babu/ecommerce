@@ -120,9 +120,25 @@ def delete_user(request, user_id):
     return Response({'status': 'User deleted successfully'}, status= status.HTTP_200_OK)
 
 # Cart Views
-class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
+class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Cart.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = CartSerializer
+
+    def get_object(self):
+        """
+        Override get_object to filter by status.
+        """
+        # Use self.kwargs to get the lookup field value (default is 'pk')
+        lookup_field_value = self.kwargs.get(self.lookup_field)
+
+        # Attempt to get the cart item filtered by status
+        try:
+            instance = Cart.objects.get(pk=lookup_field_value, status=STATUS_CHOICES[1][0])
+        except Cart.DoesNotExist:
+            # Handle case where no matching cart item is found
+            raise Response({'status': 'error', 'data': 'Cart Item not found or inactive'}, status=status.HTTP_404_NOT_FOUND)
+        
+        return instance
 
     def create(self, request, *args, **kwargs):
         """
@@ -137,12 +153,32 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
         self.perform_create(serializer)
         return Response({'status': 'success', 'data': "Item added in cart"}, status=status.HTTP_201_CREATED)
 
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Override the retrieve method to add custom logic
+        """
+        try:
+            # Get the cart item instance
+            instance = self.get_object()
+        except Cart.DoesNotExist:
+            # Handle the case where the object is not found
+            return Response({'status': 'error', 'data': 'Cart Item not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Serialize the instance
+        serializer = self.get_serializer(instance)
+        
+        # Return the response
+        return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+    
     def update(self, request, *args, **kwargs):
         """
         Update the product in cart -> the above comment is valid here
         """
         partial = kwargs.pop('partial', False)
-        instance = self.get_object()
+        try:
+            instance = self.get_object()
+        except:
+            return Response({'status': 'error', 'data': 'Cart Item not found'}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         if not serializer.is_valid():
             return Response({'status': 'validation_error', 'data': serializer.errors}, status= status.HTTP_400_BAD_REQUEST)
@@ -151,7 +187,9 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
         return Response({'message': 'Product updated in cart successfully', 'data': serializer.data}, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-
+        """
+        Delete The Cart Instance
+        """
         try:
             instance = self.get_object()
         except:

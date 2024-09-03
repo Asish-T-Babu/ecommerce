@@ -61,4 +61,4 @@ class CartMixin:
             else:
                 cart_item.quantity += quantity
             cart_item.save()
-        return True
+        return
