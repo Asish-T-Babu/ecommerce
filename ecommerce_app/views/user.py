@@ -80,7 +80,7 @@ def user_list(request):
     """
     Get All Users
     """
-    users = User.objects.filter(status=STATUS_CHOICES[0][0]).order_by('-created_at')
+    users = User.objects.filter(status=STATUS_CHOICES[1][0]).order_by('-created_at')
     paginator = StandardResultsSetPagination()
     paginated_user = paginator.paginate_queryset(users, request) 
     user_serializer = UserSerializer(paginated_user, many = True)
