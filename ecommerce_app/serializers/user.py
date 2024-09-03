@@ -55,10 +55,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 class CartSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
-    def validate_quantity(self, value):
-        if value < 0:
-            raise serializers.ValidationError({'quantity': 'Quantity must be greater than zero.'})
-        return value
     
     class Meta:
         model = Cart

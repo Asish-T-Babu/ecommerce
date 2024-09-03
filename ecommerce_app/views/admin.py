@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from ecommerce_app.models.admin import Brand, Category, Product
 from ecommerce_app.serializers.admin import BrandSerializer, CategorySerializer, ProductSerializer
 from ecommerce_app.utils import STATUS_CHOICES
+from ecommerce_app.pagination import StandardResultsSetPagination
 
 # Brand API's
 class BrandListCreateView(generics.ListCreateAPIView):
@@ -163,8 +164,10 @@ class ProductListCreateView(APIView):
 
     def get(self, request):
         products = Product.objects.filter(status = STATUS_CHOICES[1][0])
-        serializer = ProductSerializer(products, many=True)
-        return Response({'status':'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+        paginator = StandardResultsSetPagination()
+        paginated_product = paginator.paginate_queryset(products, request) 
+        product_serializer = ProductSerializer(paginated_product, many = True)
+        return paginator.get_paginated_response({'status': 'success', 'data': product_serializer.data})
 
     def post(self, request):
         serializer = ProductSerializer(data=request.data)
