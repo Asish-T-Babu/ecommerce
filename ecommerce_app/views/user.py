@@ -13,7 +13,7 @@ from ecommerce_app.models.user import User, Cart
 from ecommerce_app.utils import STATUS_CHOICES
 from ecommerce_app.helper import create_jwt_token_for_user, CartMixin
 from ecommerce_app.pagination import StandardResultsSetPagination
-from ecommerce.permission import IsUserActive, IsSuperUser
+from permission import IsUserActive, IsSuperUser
 # Create your views here.
 
 # User views

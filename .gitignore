@@ -7,3 +7,4 @@ ecommerce_app/views/__pycache__
 ecommerce_app/serializers/__pycache__
 ecommerce_app/models/__pycache__
 media
+__pycache__

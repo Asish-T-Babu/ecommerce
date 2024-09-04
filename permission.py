@@ -4,7 +4,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework import status
 from django.db.models import Q
 
-from ecommerce_app.urls import STATUS_CHOICES
+from ecommerce_app.utils import STATUS_CHOICES
 
 class IsUserActive(BasePermission):
     def has_permission(self, request, view):

@@ -7,7 +7,7 @@ from ecommerce_app.models.admin import Brand, Category, Product
 from ecommerce_app.serializers.admin import BrandSerializer, CategorySerializer, ProductSerializer
 from ecommerce_app.utils import STATUS_CHOICES
 from ecommerce_app.pagination import StandardResultsSetPagination
-from ecommerce.permission import IsUserActive, IsSuperUser
+from permission import IsUserActive, IsSuperUser
 
 # Brand API's
 class BrandListCreateView(generics.ListCreateAPIView):
