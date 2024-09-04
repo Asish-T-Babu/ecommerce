@@ -1,7 +1,8 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status, viewsets, permissions, mixins
+from rest_framework import status, viewsets, mixins
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth.signals import user_logged_in
 from django.contrib.auth import authenticate
@@ -12,6 +13,7 @@ from ecommerce_app.models.user import User, Cart
 from ecommerce_app.utils import STATUS_CHOICES
 from ecommerce_app.helper import create_jwt_token_for_user, CartMixin
 from ecommerce_app.pagination import StandardResultsSetPagination
+from ecommerce.permission import IsUserActive, IsSuperUser
 # Create your views here.
 
 # User views
@@ -76,6 +78,7 @@ def login(request):
             return Response({"status": "validation_error", "data": {"email": ["Please Register and Login."] }}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated, IsUserActive, IsSuperUser])
 def user_list(request):
     """
     Get All Users
@@ -87,6 +90,7 @@ def user_list(request):
     return paginator.get_paginated_response({'status': 'success', 'data': user_serializer.data})
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated, IsUserActive])
 def get_user(request, user_id):
     """
     Get Single User
@@ -98,6 +102,7 @@ def get_user(request, user_id):
     return Response({'status': 'success', 'data': user_serializer.data}, status= status.HTTP_200_OK)
 
 @api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsUserActive])
 def update_user(request, user_id):
     """
     Update User
@@ -113,6 +118,7 @@ def update_user(request, user_id):
         return Response({'status': 'validation_error', 'data': user_serializer.errors}, status= status.HTTP_400_BAD_REQUEST)
     
 @api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsUserActive])
 def delete_user(request, user_id):
     """
     Delete User
@@ -126,6 +132,7 @@ def delete_user(request, user_id):
 
 # Cart Views
 class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated, IsUserActive]
     queryset = Cart.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = CartSerializer
 

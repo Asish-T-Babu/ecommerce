@@ -7,9 +7,11 @@ from ecommerce_app.models.admin import Brand, Category, Product
 from ecommerce_app.serializers.admin import BrandSerializer, CategorySerializer, ProductSerializer
 from ecommerce_app.utils import STATUS_CHOICES
 from ecommerce_app.pagination import StandardResultsSetPagination
+from ecommerce.permission import IsUserActive, IsSuperUser
 
 # Brand API's
 class BrandListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
     queryset = Brand.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = BrandSerializer
 
@@ -35,6 +37,7 @@ class BrandListCreateView(generics.ListCreateAPIView):
 
 
 class BrandRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
     queryset = Brand.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = BrandSerializer
 
@@ -86,6 +89,7 @@ class BrandRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 # Category API's
 class CategoryListCreateView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
     queryset = Category.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = CategorySerializer
 
@@ -111,6 +115,7 @@ class CategoryListCreateView(generics.GenericAPIView):
         return Response({'status': 'validation_error', 'data': "Category created successfully"}, status=status.HTTP_201_CREATED)
 
 class CategoryRetrieveUpdateDestroyView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
     queryset = Category.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = CategorySerializer
 
@@ -163,7 +168,7 @@ class CategoryRetrieveUpdateDestroyView(generics.GenericAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class ProductListCreateView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
 
     def get(self, request):
         products = Product.objects.filter(status = STATUS_CHOICES[1][0])
@@ -180,7 +185,7 @@ class ProductListCreateView(APIView):
         return Response({'status': 'validation_error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDetailView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
 
     def get_object(self, pk):
         return Product.objects.filter(id = pk).first()
