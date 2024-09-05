@@ -3,12 +3,8 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 import uuid
 
 from ecommerce_app.models.admin import Product
-from ecommerce_app.utils import STATUS_CHOICES
+from ecommerce_app.utils import STATUS_CHOICES, USER_CURRENCY, ORDER_STATUS
 
-USER_CURRENCY = (
-    ('rupee', 'rupee'),
-    ('dollar', 'dollar')
-)
 
 class UsersManager(BaseUserManager):
 
@@ -79,3 +75,14 @@ class Cart(models.Model):
     session_id = models.CharField(max_length=256, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+class ProductPurchase(models.Model):
+    id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="productpurchase_user")
+    Product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, related_name='productpurchase_product')
+    product_price = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_status = models.BooleanField(default=False)
+    order_status = models.IntegerField(default=ORDER_STATUS[0][0], choices=ORDER_STATUS)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
