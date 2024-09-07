@@ -14,6 +14,6 @@ ORDER_STATUS = (
     (0, 'ORDERED'),
     (1, 'PROCESSSING'),
     (2, 'SHIPPED'),
-    (3, 'COMPLETED')
+    (3, 'COMPLETED'),
     (4, 'CANCELLED')
 )

@@ -187,18 +187,41 @@ class ProductListCreateView(APIView):
 class ProductDetailView(APIView):
     permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
 
-    def get_object(self, pk):
-        return Product.objects.filter(id = pk).first()
+    def get_object_by_id(self, pk):
+        # Retrieve product by its primary key (ID)
+        return Product.objects.filter(id=pk, status=STATUS_CHOICES[1][0]).first()
 
-    def get(self, request, pk):
-        product = self.get_object(pk)
-        if not product:
-            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
-        serializer = ProductSerializer(product)
-        return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+    def get_object_by_name(self, name):
+        # Retrieve product by name (case-insensitive)
+        return Product.objects.filter(name__icontains=name, status=STATUS_CHOICES[1][0])
+
+    def get(self, request, pk=None):
+        """
+        Retrieve the product by ID or by name if a 'name' parameter is passed in the query string.
+        """
+        # Search by product name if the 'name' query param is provided
+        name = request.query_params.get('name')
+        if name:
+            products = self.get_object_by_name(name)
+            if not products.exists():
+                return Response({'status': 'error', 'data': 'No products found with this name'}, status=status.HTTP_404_NOT_FOUND)
+            
+            serializer = ProductSerializer(products, many=True)
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+
+        # Otherwise, search by ID
+        if pk:
+            product = self.get_object_by_id(pk)
+            if not product:
+                return Response({'status': 'error', 'data': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+            serializer = ProductSerializer(product)
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+
+        return Response({'status': 'error', 'data': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk):
-        product = self.get_object(pk)
+        product = self.get_object_by_id(pk)
         if not product:
             return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
         serializer = ProductSerializer(product, data=request.data)
@@ -208,7 +231,7 @@ class ProductDetailView(APIView):
         return Response({'status': 'error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
-        product = self.get_object(pk)
+        product = self.get_object_by_id(pk)
         if not product:
             return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
         serializer = ProductSerializer(product, data=request.data, partial=True)
@@ -218,7 +241,7 @@ class ProductDetailView(APIView):
         return Response({'status': 'error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        product = self.get_object(pk)
+        product = self.get_object_by_id(pk)
         if not product:
             return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
         product.status = STATUS_CHOICES[2][0]

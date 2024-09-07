@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework import status, viewsets, mixins
 from rest_framework.exceptions import ValidationError
@@ -151,6 +151,19 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
             raise Response({'status': 'error', 'data': 'Cart Item not found or inactive'}, status=status.HTTP_400_BAD_REQUEST)
         
         return instance
+    
+    # Custom action for searching a product in the cart
+    @action(detail=False, methods=['get'], url_path='search/(?P<product_id>[^/.]+)')
+    def search_product(self, request, product_id=None):
+        """
+        Search for a specific product in the cart by product ID.
+        """
+        cart_item = self.search_product_in_cart(request, product_id)
+        if cart_item:
+            serializer = self.get_serializer(cart_item)
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'status': 'error', 'data': 'Product not found in cart'}, status=status.HTTP_404_NOT_FOUND)
 
     def create(self, request, *args, **kwargs):
         """

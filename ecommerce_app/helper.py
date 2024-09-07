@@ -62,3 +62,20 @@ class CartMixin:
                 cart_item.quantity += quantity
             cart_item.save()
         return
+    
+    def search_product_in_cart(self, request, product_id):
+        if isinstance(request.user, AnonymousUser):
+            cart_id = request.session.get('cart_id')
+            if cart_id:
+                # Searching for the product in the anonymous user's session-based cart
+                cart_item = Cart.objects.filter(session_id=cart_id, product_id=product_id, status=STATUS_CHOICES[1][0]).first()
+            else:
+                cart_item = None
+        else:
+            # Searching for the product in the authenticated user's cart
+            cart_item = request.user.cart_user.filter(product_id=product_id, status=STATUS_CHOICES[1][0]).first()
+
+        if cart_item:
+            return cart_item
+        else:
+            return None
