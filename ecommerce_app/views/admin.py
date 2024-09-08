@@ -12,12 +12,26 @@ from permission import IsUserActive, IsSuperUser
 # Brand API's
 class BrandListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
-    queryset = Brand.objects.filter(status=STATUS_CHOICES[1][0])
+
+    # We Can Specify The Queryset In Class Level and When We Try To Access The Queryset Using Built-In get_queryset(), The Queryset Will Be The One Which We Set On Class Level But Here We Override The get_queryset() For Implementing Search Functionality
+    # queryset = Brand.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = BrandSerializer
+
+    def get_queryset(self):
+        """
+        Override the default queryset to include manual search functionality.
+        """
+        queryset = Brand.objects.filter(status=STATUS_CHOICES[1][0])
+        search_query = self.request.query_params.get('search', None)
+        
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)  # Filter based on case-insensitive match
+        
+        return queryset
 
     def list(self, request, *args, **kwargs):
         """
-        Get All Brands
+        Get All Brands with search functionality
         """
         queryset = self.get_queryset()
         paginator = StandardResultsSetPagination()
@@ -90,15 +104,28 @@ class BrandRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 # Category API's
 class CategoryListCreateView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
-    queryset = Category.objects.filter(status=STATUS_CHOICES[1][0])
+
+    # We Can Specify The Queryset In Class Level and When We Try To Access The Queryset Using Built-In get_queryset(), The Queryset Will Be The One Which We Set On Class Level But Here We Override The get_queryset() For Implementing Search Functionality
+    # queryset = Category.objects.filter(status=STATUS_CHOICES[1][0])
     serializer_class = CategorySerializer
+
+    def get_queryset(self):
+        """
+        Override the default queryset to include manual search functionality.
+        """
+        queryset = Category.objects.filter(status=STATUS_CHOICES[1][0])
+        search_query = self.request.query_params.get('search', None)
+        
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)  # Filter based on case-insensitive match
+        
+        return queryset
 
     def get(self, request, *args, **kwargs):
         """
-        Get All Categories
+        Get All Categories with search functionality
         """
         queryset = self.get_queryset()
-
         paginator = StandardResultsSetPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request) 
         serializer = self.get_serializer(paginated_queryset, many=True)
