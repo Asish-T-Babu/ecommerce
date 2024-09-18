@@ -7,10 +7,12 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.signals import user_logged_in
 from django.contrib.auth import authenticate
 from django.db.models import Q
+from django.db import transaction
 
-from ecommerce_app.serializers.user import UserSerializer, CartSerializer
-from ecommerce_app.models.user import User, Cart
-from ecommerce_app.utils import STATUS_CHOICES
+from ecommerce_app.serializers.user import UserSerializer, CartSerializer, ProductPurchaseSerializer
+from ecommerce_app.models.admin import Product
+from ecommerce_app.models.user import User, Cart, ProductPurchase
+from ecommerce_app.utils import STATUS_CHOICES, ORDER_STATUS
 from ecommerce_app.helper import create_jwt_token_for_user, CartMixin
 from ecommerce_app.pagination import StandardResultsSetPagination
 from permission import IsUserActive, IsSuperUser
@@ -257,3 +259,74 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
         cart = self.get_cart(request)
         serializer = CartSerializer(cart, many=True)
         return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+
+# PurchaseProduct Viewsclass ProductPurchaseViewSet(viewsets.ModelViewSet):
+    serializer_class = ProductPurchaseSerializer
+    queryset = ProductPurchase.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        cart_items = Cart.objects.filter(user=user)
+
+        # If a specific product is being purchased
+        product_id = request.data.get('product_id')
+        quantity = request.data.get('quantity', 1)  # Default to 1 if no quantity is provided
+
+        # Check if the request is for a single product or all products
+        if product_id:
+            return self._purchase_product_not_in_cart(user, product_id, quantity)
+
+        # Purchase all products in the cart
+        if cart_items.exists():
+            self._purchase_all_products(user, cart_items)
+            return Response({"detail": "All products purchased successfully."}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({"detail": "No products in cart."}, status=status.HTTP_400_BAD_REQUEST)
+
+    def _purchase_single_product(self, user, cart_item, quantity):
+        """Helper method to handle single product purchase (if in cart)."""
+        product_purchase_data = {
+            'user': user.id,
+            'product': cart_item.product.id,
+            'product_price': cart_item.product.price,  # Assuming product has a price field
+            'quantity': quantity,
+            'payment_status': True,  # Adjust payment logic as needed
+            'order_status': ORDER_STATUS[0][0],  # Default to 'ORDERED'
+        }
+
+        serializer = ProductPurchaseSerializer(data=product_purchase_data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        # Remove the product from the cart after purchase
+        cart_item.delete()
+
+    def _purchase_product_not_in_cart(self, user, product_id, quantity):
+        """Helper method to handle purchase when the product is not in the cart."""
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prepare the purchase data
+        product_purchase_data = {
+            'user': user.id,
+            'product': product.id,
+            'product_price': product.price,  # Assuming product has a price field
+            'quantity': quantity,
+            'payment_status': True,  # Adjust payment logic as needed
+            'order_status': ORDER_STATUS[0][0],  # Default to 'ORDERED'
+        }
+
+        # Use the serializer to create the purchase
+        serializer = ProductPurchaseSerializer(data=product_purchase_data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({"detail": "Product purchased successfully."}, status=status.HTTP_201_CREATED)
+
+    def _purchase_all_products(self, user, cart_items):
+        """Helper method to handle purchasing all products in the cart."""
+        with transaction.atomic():
+            for cart_item in cart_items:
+                self._purchase_single_product(user, cart_item, cart_item.quantity)
