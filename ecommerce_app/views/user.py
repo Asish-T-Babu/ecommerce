@@ -265,6 +265,13 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
     serializer_class = ProductPurchaseSerializer
     queryset = ProductPurchase.objects.all()
 
+    def get_queryset(self):
+        """
+        Filter purchases by the logged-in user.
+        """
+        user = self.request.user
+        return ProductPurchase.objects.filter(user=user, status=STATUS_CHOICES[1][0])
+    
     def create(self, request, *args, **kwargs):
         user = request.user
         cart_items = Cart.objects.filter(user=user)
@@ -331,3 +338,25 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             for cart_item in cart_items:
                 self._purchase_single_product(user, cart_item, cart_item.quantity)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update the payment_status or order_status for a purchase.
+        """
+        instance = self.get_object()
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Soft delete a purchase by setting status to 2.
+        """
+        instance = self.get_object()
+        instance.status = 2
+        instance.save()
+        return Response({"detail": "Purchase deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+    
+    # Here i need To Override List and Retrieve Function As Well As Update the Responses Of Each API
