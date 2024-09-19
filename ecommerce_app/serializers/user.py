@@ -63,4 +63,14 @@ class CartSerializer(serializers.ModelSerializer):
 class ProductPurchaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductPurchase
-        fields = ['id', 'user', 'product', 'product_price', 'payment_status', 'order_status', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'product', 'product_price', 'quantity', 'payment_status', 'order_status', 'status', 'created_at', 'updated_at']
+
+    def update(self, instance, validated_data):
+        """
+        Allow only `payment_status` and `order_status` to be updated.
+        """
+        # Update only `payment_status` and `order_status`
+        instance.payment_status = validated_data.get('payment_status', instance.payment_status)
+        instance.order_status = validated_data.get('order_status', instance.order_status)
+        instance.save()
+        return instance

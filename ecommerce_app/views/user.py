@@ -260,7 +260,8 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
         serializer = CartSerializer(cart, many=True)
         return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
 
-# PurchaseProduct Viewsclass ProductPurchaseViewSet(viewsets.ModelViewSet):
+# PurchaseProduct Views
+class ProductPurchaseViewSet(viewsets.ModelViewSet):
     serializer_class = ProductPurchaseSerializer
     queryset = ProductPurchase.objects.all()
 

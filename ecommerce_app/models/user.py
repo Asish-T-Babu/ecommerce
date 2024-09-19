@@ -84,6 +84,7 @@ class ProductPurchase(models.Model):
     quantity = models.IntegerField()
     payment_status = models.BooleanField(default=False)
     order_status = models.IntegerField(default=ORDER_STATUS[0][0], choices=ORDER_STATUS)
+    status = models.PositiveBigIntegerField(default=STATUS_CHOICES[1][0], choices= STATUS_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
