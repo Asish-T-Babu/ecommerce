@@ -282,14 +282,14 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
 
         # Check if the request is for a single product or all products
         if product_id:
-            return self._purchase_product_not_in_cart(user, product_id, quantity)
+            return self._purchase_product_not_from_cart(user, product_id, quantity)
 
         # Purchase all products in the cart
         if cart_items.exists():
             self._purchase_all_products(user, cart_items)
-            return Response({"detail": "All products purchased successfully."}, status=status.HTTP_201_CREATED)
+            return Response({"status": "success", "data": "All products purchased successfully."}, status=status.HTTP_201_CREATED)
         else:
-            return Response({"detail": "No products in cart."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "error", "data": "No products in cart."}, status=status.HTTP_400_BAD_REQUEST)
 
     def _purchase_single_product(self, user, cart_item, quantity):
         """Helper method to handle single product purchase (if in cart)."""
@@ -303,13 +303,15 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         }
 
         serializer = ProductPurchaseSerializer(data=product_purchase_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response({'status': 'validation_error', 'data': serializer.errors})
 
         # Remove the product from the cart after purchase
         cart_item.delete()
 
-    def _purchase_product_not_in_cart(self, user, product_id, quantity):
+    def _purchase_product_not_from_cart(self, user, product_id, quantity):
         """Helper method to handle purchase when the product is not in the cart."""
         try:
             product = Product.objects.get(id=product_id)
@@ -320,16 +322,18 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         product_purchase_data = {
             'user': user.id,
             'product': product.id,
-            'product_price': product.price,  # Assuming product has a price field
+            'product_price': product.price,
             'quantity': quantity,
-            'payment_status': True,  # Adjust payment logic as needed
-            'order_status': ORDER_STATUS[0][0],  # Default to 'ORDERED'
+            'payment_status': False,
+            'order_status': ORDER_STATUS[0][0],
         }
 
         # Use the serializer to create the purchase
         serializer = ProductPurchaseSerializer(data=product_purchase_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response({'status': 'validation_error', 'data': serializer.errors})
 
         return Response({"detail": "Product purchased successfully."}, status=status.HTTP_201_CREATED)
 
@@ -346,9 +350,11 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         partial = kwargs.pop('partial', False)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
+        if serializer.is_valid():
+            self.perform_update(serializer)
+        else:
+            return Response({'status': 'validation_error', 'data': serializer.errors}, status= status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -357,6 +363,20 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         instance.status = 2
         instance.save()
-        return Response({"detail": "Purchase deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Purchase deleted successfully"}, status=status.HTTP_200_OK)
     
-    # Here i need To Override List and Retrieve Function As Well As Update the Responses Of Each API
+    def list(self, request, *args, **kwargs):
+        """
+        Override list to return purchases in a custom format.
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"status": "success", "purchases": serializer.data}, status= status.HTTP_200_OK)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Override retrieve to return a custom response for a single purchase.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({"status": 'success', "data": serializer.data}, status= status.HTTP_200_OK)
