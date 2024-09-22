@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from ecommerce_app.models.admin import Brand, Category, Product
+from ecommerce_app.models.admin import Brand, Category, Product, ProductImage
 from ecommerce_app.serializers.admin import BrandSerializer, CategorySerializer, ProductSerializer
 from ecommerce_app.utils import STATUS_CHOICES
 from ecommerce_app.pagination import StandardResultsSetPagination
@@ -194,83 +194,155 @@ class CategoryRetrieveUpdateDestroyView(generics.GenericAPIView):
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+# Product CRUD API's
 class ProductListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
 
     def get(self, request):
-        products = Product.objects.filter(status = STATUS_CHOICES[1][0])
+        """
+        List all products along with their images.
+        """
+        products = Product.objects.filter(status=STATUS_CHOICES[1][0])  # Only active products
         paginator = StandardResultsSetPagination()
-        paginated_product = paginator.paginate_queryset(products, request) 
-        product_serializer = ProductSerializer(paginated_product, many = True)
-        return paginator.get_paginated_response({'status': 'success', 'data': product_serializer.data})
+        paginated_products = paginator.paginate_queryset(products, request)
+        serializer = ProductSerializer(paginated_products, many=True)
+        return paginator.get_paginated_response({
+            'status': 'success', 
+            'data': serializer.data
+        })
 
     def post(self, request):
+        """
+        Create a new product along with its images.
+        """
         serializer = ProductSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({'status': 'validation_error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'status': 'success',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'status': 'validation_error', 
+            'data': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDetailView(APIView):
     permission_classes = [IsAuthenticated, IsUserActive, IsSuperUser]
 
-    def get_object_by_id(self, pk):
-        # Retrieve product by its primary key (ID)
-        return Product.objects.filter(id=pk, status=STATUS_CHOICES[1][0]).first()
-
-    def get_object_by_name(self, name):
-        # Retrieve product by name (case-insensitive)
-        return Product.objects.filter(name__icontains=name, status=STATUS_CHOICES[1][0])
-
-    def get(self, request, pk=None):
+    def get_object(self, pk):
         """
-        Retrieve the product by ID or by name if a 'name' parameter is passed in the query string.
+        Retrieve product by its primary key (ID).
         """
-        # Search by product name if the 'name' query param is provided
-        name = request.query_params.get('name')
-        if name:
-            products = self.get_object_by_name(name)
-            if not products.exists():
-                return Response({'status': 'error', 'data': 'No products found with this name'}, status=status.HTTP_404_NOT_FOUND)
-            
-            serializer = ProductSerializer(products, many=True)
-            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+        try:
+            return Product.objects.get(pk=pk, status=STATUS_CHOICES[1][0])
+        except Product.DoesNotExist:
+            return None
 
-        # Otherwise, search by ID
-        if pk:
-            product = self.get_object_by_id(pk)
-            if not product:
-                return Response({'status': 'error', 'data': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
-            
-            serializer = ProductSerializer(product)
-            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
-
-        return Response({'status': 'error', 'data': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, pk):
+        """
+        Retrieve a product by its ID.
+        """
+        product = self.get_object(pk)
+        if not product:
+            return Response({
+                'status': 'error', 
+                'data': 'Product not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = ProductSerializer(product)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        product = self.get_object_by_id(pk)
+        """
+        Update a product and its images using the full update (PUT).
+        """
+        product = self.get_object(pk)
         if not product:
-            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'status': 'error',
+                'data': 'Product not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ProductSerializer(product, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
-        return Response({'status': 'error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'status': 'success',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            'status': 'validation_error',
+            'data': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
-        product = self.get_object_by_id(pk)
+        """
+        Partially update a product and its images (PATCH).
+        """
+        product = self.get_object(pk)
         if not product:
-            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'status': 'error',
+                'data': 'Product not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ProductSerializer(product, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
-        return Response({'status': 'error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'status': 'success',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            'status': 'validation_error',
+            'data': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
+        """
+        Soft delete a product by changing its status.
+        """
+        product = self.get_object(pk)
+        if not product:
+            return Response({
+                'status': 'error',
+                'data': 'Product not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Soft delete: update the status of the product instead of deleting it
+        product.status = STATUS_CHOICES[2][0]  # For example, mark as inactive
+        product.save()
+        return Response({
+            'status': 'success',
+            'data': 'Product deleted successfully'
+        }, status=status.HTTP_200_OK)
+    
+    def delete_image(self, request, pk, image_id):
+        """
+        Delete a specific image associated with the product.
+        """
         product = self.get_object_by_id(pk)
         if not product:
-            return Response({'status': 'error', 'data': 'Product not found'}, status= status.HTTP_400_BAD_REQUEST)
-        product.status = STATUS_CHOICES[2][0]
-        product.save()
-        return Response({'status': 'success', 'data': 'Product deleted successfully'}, status=status.HTTP_200_OK)
+            return Response({'status': 'error', 'data': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            # Retrieve the product image by its ID and ensure it belongs to the product
+            product_image = ProductImage.objects.get(id=image_id, product=product)
+        except ProductImage.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'data': 'Product image not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Delete the image
+        product_image.status = STATUS_CHOICES[2][0]
+        product_image.save()
+
+        return Response({
+            'status': 'success',
+            'data': 'Product image deleted successfully'
+        }, status=status.HTTP_200_OK)
