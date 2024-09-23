@@ -332,6 +332,8 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         serializer = ProductPurchaseSerializer(data=product_purchase_data)
         if serializer.is_valid():
             serializer.save()
+            product.stock - quantity
+            product.save()
         else:
             return Response({'status': 'validation_error', 'data': serializer.errors})
 
@@ -380,3 +382,5 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response({"status": 'success', "data": serializer.data}, status= status.HTTP_200_OK)
+    
+# If the order status is updated to completed then authomatically i need to update the payment status to True
