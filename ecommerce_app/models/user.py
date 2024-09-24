@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 import uuid
 
 from ecommerce_app.models.admin import Product
-from ecommerce_app.utils import STATUS_CHOICES, USER_CURRENCY, ORDER_STATUS
+from ecommerce_app.utils import STATUS_CHOICES, USER_CURRENCY, ADDRESS_TYPES, ORDER_STATUS
 
 
 class UsersManager(BaseUserManager):
@@ -65,6 +65,22 @@ class User(AbstractBaseUser):
 
     def __str__(self):
         return self.email
+
+class Address(models.Model):
+    id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    name = models.CharField(max_length=256)
+    phone = models.PositiveBigIntegerField()
+    pincode = models.CharField(max_length=10)
+    locality = models.CharField(max_length=256)
+    city = models.CharField(max_length=256)
+    state = models.CharField(max_length=256)
+    land_mark = models.TextField(null=True, blank=True)
+    alternative_phone = models.PositiveBigIntegerField(null=True, blank=True)
+    address_type = models.IntegerField(null=True, blank=True, choices=ADDRESS_TYPES)
+    status = models.PositiveBigIntegerField(default=STATUS_CHOICES[1][0], choices= STATUS_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class Cart(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

@@ -53,6 +53,11 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['id', 'user', 'name', 'phone', 'pincode', 'locality', 'city', 'state', 'land_mark', 'alternative_phone', 'address_type', 'status', 'created_at', 'updated_at']
+
 class CartSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
     

@@ -17,3 +17,8 @@ ORDER_STATUS = (
     (3, 'COMPLETED'),
     (4, 'CANCELLED')
 )
+
+ADDRESS_TYPES = (
+    (0, 'Home'),
+    (1, 'Work'),
+)
