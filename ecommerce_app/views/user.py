@@ -9,9 +9,9 @@ from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.db import transaction
 
-from ecommerce_app.serializers.user import UserSerializer, CartSerializer, ProductPurchaseSerializer
+from ecommerce_app.serializers.user import UserSerializer, AddressSerializer, CartSerializer, ProductPurchaseSerializer
 from ecommerce_app.models.admin import Product
-from ecommerce_app.models.user import User, Cart, ProductPurchase
+from ecommerce_app.models.user import User, Address, Cart, ProductPurchase
 from ecommerce_app.utils import STATUS_CHOICES, ORDER_STATUS
 from ecommerce_app.helper import create_jwt_token_for_user, CartMixin
 from ecommerce_app.pagination import StandardResultsSetPagination
@@ -131,6 +131,71 @@ def delete_user(request, user_id):
     user.status = STATUS_CHOICES[2][0]
     user.save()
     return Response({'status': 'User deleted successfully'}, status= status.HTTP_200_OK)
+
+
+# Address Views
+class AddressViewSet(viewsets.ModelViewSet):
+    serializer_class = AddressSerializer
+    # queryset = Address.objects.all(status=STATUS_CHOICES[1][0])
+    permission_classes = [IsAuthenticated, IsUserActive]
+
+    def get_queryset(self):
+        # Ensure the queryset only includes addresses with a specific status
+        return Address.objects.filter(status=STATUS_CHOICES[1][0])
+    
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        data = request.data.copy()
+        data['user'] = user.id
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            # serializer.save()
+            self.perform_create(serializer)
+            return Response({'status': 'success', 'data': 'Address created successfully'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'status': 'validation_error', 'data': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update the payment_status or order_status for a purchase.
+        """
+        instance = self.get_object()
+        partial = kwargs.pop('partial', False)
+        user = request.user
+        data = request.data.copy()
+        data['user'] = user.id
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        if serializer.is_valid():
+            self.perform_update(serializer)
+        else:
+            return Response({'status': 'validation_error', 'data': serializer.errors}, status= status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Soft delete a purchase by setting status to 2.
+        """
+        instance = self.get_object()
+        instance.status = STATUS_CHOICES[2][0]
+        instance.save()
+        return Response({"detail": "Purchase deleted successfully"}, status=status.HTTP_200_OK)
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Override list to return purchases in a custom format.
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"status": "success", "purchases": serializer.data}, status= status.HTTP_200_OK)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Override retrieve to return a custom response for a single purchase.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({"status": 'success', "data": serializer.data}, status= status.HTTP_200_OK)
+    
 
 # Cart Views
 class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

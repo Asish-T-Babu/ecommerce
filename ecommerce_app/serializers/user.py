@@ -54,6 +54,8 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 class AddressSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
+
     class Meta:
         model = Address
         fields = ['id', 'user', 'name', 'phone', 'pincode', 'locality', 'city', 'state', 'land_mark', 'alternative_phone', 'address_type', 'status', 'created_at', 'updated_at']
