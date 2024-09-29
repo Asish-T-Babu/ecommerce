@@ -68,9 +68,12 @@ class CartSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'product', 'quantity', 'status', 'created_at', 'updated_at']
 
 class ProductPurchaseSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
+    address = serializers.PrimaryKeyRelatedField(queryset=Address.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
+
     class Meta:
         model = ProductPurchase
-        fields = ['id', 'user', 'product', 'product_price', 'quantity', 'payment_status', 'order_status', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'address', 'product', 'product_price', 'quantity', 'payment_status', 'order_status', 'status', 'created_at', 'updated_at']
 
     def update(self, instance, validated_data):
         """

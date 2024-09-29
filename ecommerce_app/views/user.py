@@ -328,7 +328,6 @@ class CartViewSet(CartMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, m
 # PurchaseProduct Views
 class ProductPurchaseViewSet(viewsets.ModelViewSet):
     serializer_class = ProductPurchaseSerializer
-    queryset = ProductPurchase.objects.all()
 
     def get_queryset(self):
         """
@@ -343,15 +342,29 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
 
         # If a specific product is being purchased
         product_id = request.data.get('product_id')
-        quantity = request.data.get('quantity', 1)  # Default to 1 if no quantity is provided
+        address_id = request.data.get('address_id')
+        quantity = request.data.get('quantity', 1)
+
+        errors = {}
+        if product_id:
+            product = Product.objects.filter(id=product_id, status=STATUS_CHOICES[1][0]).first()
+            if not product:
+                errors['product_id'] = ['Product not found']
+        if not address_id:
+            errors['address_id'] = ['Address is required']
+            address = Address.objects.filter(id=address_id, status=STATUS_CHOICES[1][0]).first()
+            if not address:
+                errors['address_id'] = ['Address not found']
+        if errors != {}:
+            return Response({'status': 'validation_error', 'data': errors}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the request is for a single product or all products
         if product_id:
-            return self._purchase_product_not_from_cart(user, product_id, quantity)
+            return self._purchase_product_not_from_cart(user, address_id, product_id, quantity)
 
         # Purchase all products in the cart
         if cart_items.exists():
-            self._purchase_all_products(user, cart_items)
+            self._purchase_all_products(user, address_id, cart_items)
             return Response({"status": "success", "data": "All products purchased successfully."}, status=status.HTTP_201_CREATED)
         else:
             return Response({"status": "error", "data": "No products in cart."}, status=status.HTTP_400_BAD_REQUEST)
@@ -376,7 +389,7 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         # Remove the product from the cart after purchase
         cart_item.delete()
 
-    def _purchase_product_not_from_cart(self, user, product_id, quantity):
+    def _purchase_product_not_from_cart(self, user, address_id, product_id, quantity):
         """Helper method to handle purchase when the product is not in the cart."""
         try:
             product = Product.objects.get(id=product_id)
@@ -386,7 +399,8 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         # Prepare the purchase data
         product_purchase_data = {
             'user': user.id,
-            'product': product.id,
+            'address': address_id,
+            'product': product_id,
             'product_price': product.price,
             'quantity': quantity,
             'payment_status': False,
@@ -404,11 +418,11 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
 
         return Response({"detail": "Product purchased successfully."}, status=status.HTTP_201_CREATED)
 
-    def _purchase_all_products(self, user, cart_items):
+    def _purchase_all_products(self, user, address_id, cart_items):
         """Helper method to handle purchasing all products in the cart."""
         with transaction.atomic():
             for cart_item in cart_items:
-                self._purchase_single_product(user, cart_item, cart_item.quantity)
+                self._purchase_single_product(user, address_id, cart_item, cart_item.quantity)
 
     def update(self, request, *args, **kwargs):
         """
@@ -447,5 +461,39 @@ class ProductPurchaseViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response({"status": 'success', "data": serializer.data}, status= status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='check-cart-stock')
+    def check_cart_stock(self, request):
+        """
+        Custom action to check if all cart items have sufficient stock.
+        """
+        user = request.user
+        cart_items = Cart.objects.filter(user=user)
+        
+        # If the cart is empty, return a message
+        if not cart_items.exists():
+            return Response({"status": "error", "message": "No items in the cart."}, status=status.HTTP_400_BAD_REQUEST)
+
+        insufficient_stock_items = []
+        for cart_item in cart_items:
+            product = cart_item.product
+            if cart_item.quantity > product.stock:
+                insufficient_stock_items.append({
+                    "product_id": product.id,
+                    "product_name": product.name,
+                    "requested_quantity": cart_item.quantity,
+                    "available_stock": product.stock
+                })
+
+        if insufficient_stock_items:
+            # Return the list of items with insufficient stock
+            return Response({
+                "status": "error", 
+                "message": "Some products have insufficient stock.", 
+                "data": insufficient_stock_items
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # All products have sufficient stock
+        return Response({"status": "success", "message": "All items are in stock."}, status=status.HTTP_200_OK)
     
 # If the order status is updated to completed then authomatically i need to update the payment status to True
