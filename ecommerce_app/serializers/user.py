@@ -62,6 +62,13 @@ class AddressSerializer(serializers.ModelSerializer):
 
 class CartSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(status = STATUS_CHOICES[1][0]), required=True)
+
+    def validate(self, data):
+        quantity = data.get('quantity')
+        product = data.get('product')
+        if product.stock < quantity:
+            raise serializers.ValidationError({'product': 'Out of stock'})
+        return data
     
     class Meta:
         model = Cart
