@@ -64,13 +64,13 @@ class ProductSerializer(serializers.ModelSerializer):
             data['offer_price'] = data.get('price')  # Default to price if offer_price is not provided
         
         if data['offer_price'] > data['price']:
-            raise serializers.ValidationError("Offer price cannot be greater than the actual price.")
+            raise serializers.ValidationError({"offer_price": "Offer price cannot be greater than the actual price."})
 
         # Check if images are provided during creation
         if self.instance is None:  # This is a create operation, not update
             images_data = self.initial_data.get('images')
             if not images_data or len(images_data) == 0:
-                raise serializers.ValidationError("At least one product image must be provided.")
+                raise serializers.ValidationError({"images": "At least one product image must be provided."})
 
         return data
 
